@@ -1886,7 +1886,7 @@ async function submitRun(asyncMode = false) {
   const multiTask = state.multiTaskMode || hasPendingTasks;
   if (multiTask) enterMultiTaskMode();
   const task = await runRequest(request, { model: cloneJson(state.selectedModel), switchToResult: !multiTask, resultPresentation: multiTask ? 'history' : 'result' });
-  if (!multiTask && task?.request?.async && !isTerminalStatus(statusText(task.response))) {
+  if (!multiTask && task && !isTerminalStatus(statusText(task.response))) {
     window.setTimeout(() => {
       const hasAnotherPendingTask = state.history.some((item) => item.id !== task.id && !isTerminalStatus(statusText(item.response)));
       if (hasAnotherPendingTask) enterMultiTaskMode();
@@ -1916,8 +1916,8 @@ async function runRequest(request, { model = null, retriedFrom = null, switchToR
   try {
     const payload = await api('/api/run', { method: 'POST', body: JSON.stringify({ ...request, taskId: task.id }) });
     const updated = updateTask(task.id, payload.result, { pollError: '' });
-    if (request.async && updated && !isTerminalStatus(statusText(payload.result))) scheduleTaskPoll(task.id, 1200);
-    toast(request.async ? '队列任务已提交，任务台会自动更新。' : '任务已完成。');
+    if (updated && requestIdFrom(payload.result) && !isTerminalStatus(statusText(payload.result))) scheduleTaskPoll(task.id, 1200);
+    toast(request.async ? '队列任务已提交，任务台会自动更新。' : '任务已提交，完成后会自动显示结果。');
     return updated;
   } catch (error) {
     const failure = { status: 'failed', error: { code: error.code, message: error.message, details: error.details } };

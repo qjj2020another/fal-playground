@@ -21,8 +21,6 @@ const PORT = Number(process.env.PORT || 14726);
 const MAX_BODY = 100 * 1024 * 1024;
 const MAX_UPLOAD_SIZE = 90 * 1024 * 1024;
 const MAX_REDIRECTS = 5;
-const GENERATION_TIMEOUT_MS = 600_000;
-const GENERATION_RESPONSE_GRACE_MS = 15_000;
 
 const DEFAULT_PROXY_SETTINGS = Object.freeze({
   enabled: false,
@@ -1137,17 +1135,7 @@ async function runModel(body) {
   validateInputs(body.inputs || {});
   if (body.taskId) normalizeTaskId(body.taskId);
 
-  if (body.async) {
-    return { ok: true, endpointId, result: await submitQueueTask(endpointId, body.inputs || {}) };
-  }
-
-  const output = await fetchFalJson(`https://fal.run/${endpointId}`, {
-    method: 'POST',
-    body: body.inputs || {},
-    timeout: GENERATION_TIMEOUT_MS
-  });
-  const result = await finalizeTaskResult(body.taskId, endpointId, output);
-  return { ok: true, endpointId, result };
+  return { ok: true, endpointId, result: await submitQueueTask(endpointId, body.inputs || {}) };
 }
 
 async function checkKey(key) {
@@ -1436,8 +1424,6 @@ await loadProxySettings();
 await loadSavedKey();
 
 const server = createServer(handle);
-server.requestTimeout = GENERATION_TIMEOUT_MS + GENERATION_RESPONSE_GRACE_MS;
-server.timeout = GENERATION_TIMEOUT_MS + GENERATION_RESPONSE_GRACE_MS;
 server.listen(PORT, '127.0.0.1', () => {
   console.log(`fal playground demo listening at http://127.0.0.1:${PORT}`);
 });
