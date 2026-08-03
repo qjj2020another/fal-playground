@@ -1,0 +1,47 @@
+# Runtime secrets and local state
+.runtime/
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+
+# Generated outputs and test artifacts
+images/
+test-artifacts/
+coverage/
+
+# Platform-specific external tools
+tools/genmedia
+tools/genmedia.exe
+tools/genmedia-*
+
+# Local diagnostics, captured schemas, and audit reports
+schema-*.json
+schema-report.json
+schema-image-size-report.json
+
+# Logs, process files, and temporary files
+*.log
+*.pid
+*.pid.lock
+*.tmp
+*.temp
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor and operating-system metadata
+.vscode/
+.idea/
+*.code-workspace
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Local archives and backups
+*.bak
+*.local

@@ -1,0 +1,16 @@
+{
+  "name": "fal-playground-demo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Schema-driven local console for fal.ai model APIs",
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node --watch server.mjs",
+    "test": "node --check server.mjs && node --check public/app.js && node test-smoke.mjs && node test-image-size.mjs",
+    "audit:image-size": "node audit-image-size.mjs"
+  },
+  "dependencies": {
+    "proxy-agent": "^8.0.2"
+  }
+}

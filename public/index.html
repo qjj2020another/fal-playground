@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>FAL Workbench</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="FAL Workbench 首页">
+        <span class="brand-mark" aria-hidden="true">f</span>
+        <span>
+          <strong>FAL Workbench</strong>
+          <small>local schema console</small>
+        </span>
+      </a>
+
+      <div class="global-search">
+        <span class="search-icon" aria-hidden="true">⌕</span>
+        <input id="model-search" type="search" placeholder="搜索模型、能力或 endpoint" autocomplete="off">
+        <kbd>/</kbd>
+      </div>
+
+      <div class="topbar-actions">
+        <div id="balance-control" class="balance-control hidden" tabindex="0" aria-label="fal.ai 余额">
+          <span class="balance-label">Credits:</span>
+          <strong id="balance-value">--</strong>
+          <span id="balance-tooltip" class="balance-tooltip" role="tooltip">余额不足时，请前往 fal.ai 充值后再继续生成。</span>
+        </div>
+        <label id="notification-control" class="notification-toggle" title="任务完成或失败时发送浏览器通知">
+          <span class="notification-label">通知</span>
+          <input id="notification-enabled" type="checkbox" role="switch" aria-label="浏览器任务通知">
+          <span class="notification-switch" aria-hidden="true"></span>
+        </label>
+        <span id="catalog-state" class="status-chip status-demo"><i></i><span>正在检查</span></span>
+        <button id="refresh-button" class="icon-button" type="button" title="刷新模型目录" aria-label="刷新模型目录">↻</button>
+        <button id="connect-button" class="connect-button" type="button">
+          <span class="key-icon" aria-hidden="true">⌁</span>
+          <span id="connect-label">连接 fal.ai</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <aside class="model-rail" aria-label="模型目录">
+        <div class="rail-heading">
+          <div>
+            <span class="eyebrow">MODEL CATALOG</span>
+            <h1>模型</h1>
+          </div>
+          <div class="rail-heading-actions">
+            <button id="preferred-model-button" class="icon-button preferred-model-button" type="button" title="设置启动首选模型" aria-label="设置启动首选模型">☆</button>
+            <span id="model-count" class="count-badge">0</span>
+          </div>
+        </div>
+
+        <div class="category-scroll-shell">
+          <button id="category-scroll-left" class="category-scroll-button" type="button" title="向左浏览类别" aria-label="向左浏览类别">‹</button>
+          <div id="category-filter" class="category-filter" role="tablist" aria-label="模型类别">
+            <button class="category-button active" type="button" data-category="all">全部</button>
+            <button class="category-button" type="button" data-category="text-to-image">文生图</button>
+            <button class="category-button" type="button" data-category="image-to-image">图生图</button>
+            <button class="category-button" type="button" data-category="text-to-video">文生视频</button>
+            <button class="category-button" type="button" data-category="image-to-video">图生视频</button>
+            <button class="category-button" type="button" data-category="text-to-speech">语音</button>
+            <button class="category-button" type="button" data-category="image-to-3d">3D</button>
+          </div>
+          <button id="category-scroll-right" class="category-scroll-button" type="button" title="向右浏览类别" aria-label="向右浏览类别">›</button>
+        </div>
+
+        <div id="catalog-notice" class="catalog-notice hidden" role="status"></div>
+        <div id="model-list" class="model-list" aria-live="polite"></div>
+        <button id="load-more-button" class="load-more hidden" type="button">加载更多模型</button>
+      </aside>
+
+      <section class="compose-panel" aria-label="模型参数与提交">
+        <div id="model-header" class="model-header">
+          <div class="model-identity">
+            <span id="model-category" class="model-category">SCHEMA DRIVEN</span>
+            <h2 id="model-title">选择一个模型</h2>
+            <code id="endpoint-id">等待模型目录</code>
+            <p id="model-description">从左侧选择 endpoint，表单会按 fal.ai 的 OpenAPI schema 自动生成。</p>
+          </div>
+          <div class="model-header-actions">
+            <div class="model-links">
+              <a id="official-link" class="icon-button disabled" href="#" target="_blank" rel="noreferrer" title="打开 fal.ai 模型页" aria-label="打开 fal.ai 模型页">↗</a>
+              <button id="copy-endpoint" class="icon-button" type="button" title="复制 endpoint ID" aria-label="复制 endpoint ID">□</button>
+            </div>
+            <div class="submit-actions" aria-label="任务提交方式">
+              <button id="run-button" class="run-button" type="button" disabled>
+                <span aria-hidden="true">▶</span>
+                <span data-submit-label>提交任务</span>
+              </button>
+              <button id="queue-button" class="queue-button" type="button" disabled>
+                <span aria-hidden="true">⇥</span>
+                <span data-submit-label>队列任务</span>
+              </button>
+            </div>
+            <div class="request-actions">
+              <button id="clear-inputs-button" class="clear-inputs-button" type="button" title="清除当前提示词和附件，并恢复 Schema 默认配置" disabled>
+                <span aria-hidden="true">↺</span>
+                <span>清除输入</span>
+              </button>
+              <button id="inspect-request" class="text-button inspect-request" type="button">查看请求 JSON</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="composer-toolbar">
+          <div class="segmented-control" role="tablist" aria-label="参数编辑模式">
+            <button id="visual-tab" class="segment active" type="button" role="tab" aria-selected="true">可视化</button>
+            <button id="json-tab" class="segment" type="button" role="tab" aria-selected="false">JSON</button>
+          </div>
+          <div class="schema-meta">
+            <span id="schema-source">等待 schema</span>
+            <button id="reload-schema" class="text-button" type="button">重新读取</button>
+          </div>
+        </div>
+
+        <div id="schema-notice" class="schema-notice hidden" role="status"></div>
+        <form id="model-form" class="model-form" novalidate>
+          <div id="visual-form" class="visual-form">
+            <div class="empty-state">
+              <div class="empty-glyph" aria-hidden="true">{ }</div>
+              <h3>动态表单尚未载入</h3>
+              <p>选中模型后，这里会显示必填项、枚举、数值范围、上传入口和高级参数。</p>
+            </div>
+          </div>
+          <div id="json-editor-wrap" class="json-editor-wrap hidden">
+            <label for="json-editor">请求参数</label>
+            <textarea id="json-editor" spellcheck="false" aria-label="JSON 请求参数">{}</textarea>
+            <p id="json-error" class="field-error hidden"></p>
+          </div>
+        </form>
+
+      </section>
+
+      <aside class="task-panel" aria-label="任务与结果">
+        <div class="task-heading">
+          <div>
+            <span class="eyebrow">RUNS & OUTPUT</span>
+            <h2>任务台</h2>
+          </div>
+          <button id="clear-history" class="icon-button" type="button" title="清除本地任务历史" aria-label="清除本地任务历史">×</button>
+        </div>
+
+        <div class="result-tabs" role="tablist" aria-label="任务台视图">
+          <button class="result-tab active" type="button" data-result-tab="result">结果</button>
+          <button class="result-tab" type="button" data-result-tab="json">响应 JSON</button>
+          <button class="result-tab" type="button" data-result-tab="history">历史 <span id="history-count">0</span></button>
+        </div>
+
+        <div id="result-view" class="result-view">
+          <div class="result-empty">
+            <div class="result-symbol" aria-hidden="true">◇</div>
+            <h3>尚无生成结果</h3>
+            <p>提交后，图片、视频、音频、3D 文件和 fal 返回字段会在这里集中展示。</p>
+          </div>
+        </div>
+        <pre id="response-json" class="response-json hidden">{}</pre>
+        <div id="history-view" class="history-view hidden"></div>
+      </aside>
+    </main>
+  </div>
+
+  <dialog id="auth-dialog" class="modal">
+    <form method="dialog" class="modal-frame">
+      <div class="modal-header">
+        <div>
+          <span class="eyebrow">SESSION CONNECTION</span>
+          <h2>连接 fal.ai</h2>
+        </div>
+        <button class="icon-button" value="cancel" aria-label="关闭">×</button>
+      </div>
+      <p>密钥会保存到本机项目的 <code>.runtime</code> 目录，服务重启后自动恢复；只有点击“断开当前连接”才会删除。不会写入浏览器存储。</p>
+      <label class="field-block" for="fal-key-input">
+        <span>FAL_KEY</span>
+        <div class="password-row">
+          <input id="fal-key-input" type="password" placeholder="粘贴 fal.ai API key" autocomplete="off">
+          <button id="toggle-key" class="icon-button" type="button" title="显示或隐藏密钥" aria-label="显示或隐藏密钥">◉</button>
+        </div>
+      </label>
+      <div id="auth-error" class="auth-error hidden" role="alert"></div>
+      <div class="modal-actions">
+        <div class="modal-action-group">
+          <button id="disconnect-button" class="secondary-button hidden" type="button">断开当前连接</button>
+          <button id="proxy-settings-button" class="secondary-button" type="button">代理设置</button>
+        </div>
+        <span></span>
+        <button class="secondary-button" value="cancel">取消</button>
+        <button id="save-key-button" class="primary-button" type="button">验证并连接</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="preferred-model-dialog" class="modal preferred-model-modal">
+    <form method="dialog" class="modal-frame">
+      <div class="modal-header">
+        <div>
+          <span class="eyebrow">PREFERRED MODEL</span>
+          <h2>启动首选模型</h2>
+        </div>
+        <button class="icon-button" value="cancel" aria-label="关闭">×</button>
+      </div>
+      <p>保存后，打开或重新载入网页时会自动选择该模型。此设置不会改变拖放排序，并保存在当前浏览器的站点数据中。</p>
+      <div id="preferred-model-current" class="preferred-model-current"></div>
+      <label class="preferred-model-search" for="preferred-model-search">
+        <span>查找模型</span>
+        <input id="preferred-model-search" type="search" placeholder="输入模型名称或 Endpoint ID" autocomplete="off">
+      </label>
+      <div id="preferred-model-results" class="preferred-model-results" role="listbox" aria-label="首选模型搜索结果">
+        <div class="preferred-model-empty">输入名称或 Endpoint ID 查找模型。</div>
+      </div>
+      <div class="preferred-model-actions">
+        <button id="reset-preferred-model" class="secondary-button danger-button" type="button">恢复原始预设</button>
+        <span></span>
+        <button class="secondary-button" value="cancel">取消</button>
+        <button id="save-preferred-model" class="primary-button" type="button" disabled>保存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="proxy-dialog" class="modal proxy-modal">
+    <form method="dialog" class="modal-frame proxy-frame">
+      <div class="modal-header">
+        <div>
+          <span class="eyebrow">NETWORK PROXY</span>
+          <h2>代理设置</h2>
+        </div>
+        <button class="icon-button" value="cancel" aria-label="关闭">×</button>
+      </div>
+      <p>设置保存于本机项目的 <code>.runtime</code> 目录，服务重启后自动读取。关闭代理开关不会删除已保存的地址和认证信息。</p>
+
+      <section class="proxy-section">
+        <label class="proxy-switch-row" for="proxy-enabled">
+          <span><strong>启用代理</strong><small>开启后，模型目录、Schema、上传及任务请求均通过代理访问 fal.ai</small></span>
+          <input id="proxy-enabled" type="checkbox">
+          <span class="toggle-track" aria-hidden="true"><i></i></span>
+        </label>
+      </section>
+
+      <section class="proxy-section">
+        <h3>连接设置</h3>
+        <div class="proxy-field-row protocol-row">
+          <span><strong>代理类型</strong><small>仅支持 HTTP、HTTPS 与 SOCKS5</small></span>
+          <div class="proxy-radio-group" role="radiogroup" aria-label="代理类型">
+            <label><input type="radio" name="proxy-protocol" value="http" checked> HTTP</label>
+            <label><input type="radio" name="proxy-protocol" value="https"> HTTPS</label>
+            <label><input type="radio" name="proxy-protocol" value="socks5"> SOCKS5</label>
+          </div>
+        </div>
+        <label class="proxy-field-row" for="proxy-host">
+          <span><strong>服务器地址</strong><small>只填写主机名或 IP，不要包含协议和端口</small></span>
+          <input id="proxy-host" type="text" value="127.0.0.1" placeholder="127.0.0.1" autocomplete="off">
+        </label>
+        <label class="proxy-field-row" for="proxy-port">
+          <span><strong>端口</strong><small>范围 1–65535</small></span>
+          <input id="proxy-port" type="number" value="10808" min="1" max="65535" step="1">
+        </label>
+      </section>
+
+      <section class="proxy-section">
+        <h3>认证设置</h3>
+        <label class="proxy-switch-row" for="proxy-auth-enabled">
+          <span><strong>需要账号和密码</strong><small>关闭时不会把认证信息加入代理 URL</small></span>
+          <input id="proxy-auth-enabled" type="checkbox">
+          <span class="toggle-track" aria-hidden="true"><i></i></span>
+        </label>
+        <label class="proxy-field-row proxy-auth-field" for="proxy-username">
+          <span><strong>账号</strong></span>
+          <input id="proxy-username" type="text" autocomplete="off" disabled>
+        </label>
+        <label class="proxy-field-row proxy-auth-field" for="proxy-password">
+          <span><strong>密码</strong><small>留空会保留已保存的密码</small></span>
+          <input id="proxy-password" type="password" autocomplete="new-password" disabled>
+        </label>
+      </section>
+
+      <section class="proxy-section">
+        <h3>连接测试</h3>
+        <div class="proxy-test-row">
+          <input id="proxy-test-url" type="url" value="https://api.fal.ai/v1/models?limit=1" aria-label="代理测试地址">
+          <button id="test-proxy-button" class="secondary-button" type="button">测试连接</button>
+        </div>
+        <div id="proxy-status" class="proxy-status hidden" role="status"></div>
+      </section>
+
+      <div class="proxy-actions">
+        <button id="reset-proxy-button" class="secondary-button danger-button" type="button">重置</button>
+        <span></span>
+        <button class="secondary-button" value="cancel">取消</button>
+        <button id="save-proxy-button" class="primary-button" type="button">保存设置</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="request-dialog" class="modal request-modal">
+    <form method="dialog" class="modal-frame wide-modal">
+      <div class="modal-header">
+        <div>
+          <span class="eyebrow">REQUEST PREVIEW</span>
+          <h2>即将提交的请求</h2>
+        </div>
+        <button class="icon-button" value="cancel" aria-label="关闭">×</button>
+      </div>
+      <pre id="request-preview" class="request-preview">{}</pre>
+      <div class="modal-actions">
+        <span></span><span></span>
+        <button id="copy-request" class="secondary-button" type="button">复制 JSON</button>
+        <button class="primary-button" value="cancel">完成</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="clear-inputs-dialog" class="modal clear-inputs-modal">
+    <form method="dialog" class="modal-frame">
+      <div class="modal-header">
+        <div>
+          <span class="eyebrow">CLEAR CURRENT INPUTS</span>
+          <h2>清除当前输入</h2>
+        </div>
+        <button class="icon-button" value="cancel" aria-label="关闭">×</button>
+      </div>
+      <p>确定清除当前模型的提示词和已添加附件，并将全部请求配置恢复为该模型 Schema 加载时的默认值吗？已选模型、当前页面位置和任务历史都不会改变。</p>
+      <div class="clear-inputs-dialog-actions">
+        <label class="dont-ask-option" for="clear-inputs-dont-ask"><input id="clear-inputs-dont-ask" type="checkbox"> 下次不再提醒</label>
+        <span></span>
+        <button class="secondary-button" value="cancel">取消</button>
+        <button id="confirm-clear-inputs" class="primary-button danger-confirm" type="button">确认清除</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="delete-task-dialog" class="modal delete-task-modal">
+    <form method="dialog" class="modal-frame">
+      <div class="modal-header">
+        <div>
+          <span class="eyebrow">DELETE TASK</span>
+          <h2>删除任务记录</h2>
+        </div>
+        <button class="icon-button" value="cancel" aria-label="关闭">×</button>
+      </div>
+      <p>确定删除 <strong id="delete-task-name"></strong> 的本地任务记录吗？这不会取消仍在 fal.ai 运行的云端任务。</p>
+      <label id="delete-saved-files-label" class="delete-option" for="delete-saved-files">
+        <input id="delete-saved-files" type="checkbox">
+        <span><strong>同时删除项目归档文件</strong><small id="delete-saved-files-hint">只删除该任务在项目 images 目录中的自动归档，不影响另存为文件。</small></span>
+      </label>
+      <div class="delete-dialog-actions">
+        <label class="dont-ask-option" for="delete-dont-ask"><input id="delete-dont-ask" type="checkbox"> 下次不再提醒</label>
+        <span></span>
+        <button class="secondary-button" value="cancel">取消</button>
+        <button id="confirm-delete-task" class="primary-button danger-confirm" type="button">删除</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="image-lightbox" class="image-lightbox hidden" role="dialog" aria-modal="true" aria-label="图片全图预览" aria-hidden="true">
+    <div class="image-lightbox-stage">
+      <img id="image-lightbox-image" src="" alt="生成图片全图预览">
+      <button id="image-lightbox-close" class="image-lightbox-close" type="button" title="关闭全图预览" aria-label="关闭全图预览">×</button>
+    </div>
+  </div>
+
+  <div id="toast-region" class="toast-region" aria-live="polite"></div>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
