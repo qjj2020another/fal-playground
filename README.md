@@ -56,12 +56,10 @@ FAL Workbench 是一个运行在本机浏览器中的 fal.ai 可视化工作台�
 ### 安装
 
 ```powershell
-git clone https://github.com/<your-account>/<your-repository>.git
-cd <your-repository>
+git clone https://github.com/qjj2020another/fal-playground.git
+cd fal-playground
 npm install
 ```
-
-请把示例中的 `<your-account>` 与 `<your-repository>` 替换为实际 GitHub 用户名和仓库名。
 
 把 `genmedia` v0.7.0 放入项目的 `tools` 目录：
 
@@ -174,7 +172,7 @@ npm test
 
 ### 许可证
 
-仓库尚未添加开源许可证。在许可证明确之前，默认版权规则适用：源码可供查看，但不自动授予复制、修改或再分发权。第三方组件和 `genmedia` 可执行文件遵循各自的许可条款。
+本项目采用 [MIT License](LICENSE)。第三方组件和 `genmedia` 可执行文件遵循各自的许可条款。
 
 ## English
 
@@ -226,12 +224,10 @@ The local Node.js service listens on `127.0.0.1:14726` by default. It handles fa
 ### Install and start
 
 ```powershell
-git clone https://github.com/<your-account>/<your-repository>.git
-cd <your-repository>
+git clone https://github.com/qjj2020another/fal-playground.git
+cd fal-playground
 npm install
 ```
-
-Replace `<your-account>` and `<your-repository>` with the actual GitHub account and repository name.
 
 Place the platform-appropriate executable in `tools/`:
 
@@ -287,7 +283,7 @@ Windows with Chrome or Edge is the primary development environment. macOS, Linux
 
 ### License
 
-No open-source license is included yet. Until a license is selected, default copyright rules apply: public source visibility does not automatically grant permission to copy, modify, or redistribute the code. Third-party components and `genmedia` remain subject to their own terms.
+This project is available under the [MIT License](LICENSE). Third-party components and `genmedia` remain subject to their own terms.
 
 ### Disclaimer
 

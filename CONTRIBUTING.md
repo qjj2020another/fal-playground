@@ -19,12 +19,10 @@ Remove API Keys, signed URLs, proxy credentials, private prompts, local username
 ## Development setup
 
 ```powershell
-git clone https://github.com/<your-account>/<your-repository>.git
-cd <your-repository>
+git clone https://github.com/qjj2020another/fal-playground.git
+cd fal-playground
 npm install
 ```
-
-Replace `<your-account>` and `<your-repository>` with the actual GitHub account and repository name.
 
 Place the platform-appropriate `genmedia` v0.7.0 executable in `tools/`:
 
@@ -113,4 +111,4 @@ Windows is currently the primary development environment. Contributions that imp
 
 ## Licensing
 
-The repository does not yet include an open-source license. Until a license is added, contributors retain copyright in their contributions and should understand that accepting a Pull Request does not by itself resolve the repository's broader reuse terms. A license should be selected before promoting the project as generally reusable open-source software.
+The project is distributed under the [MIT License](LICENSE). By submitting a contribution, you agree that it may be distributed under the same license.
