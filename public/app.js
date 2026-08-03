@@ -449,18 +449,33 @@ function saveClearInputsPreference(preference) {
   localStorage.setItem(CLEAR_INPUTS_PREFERENCE_KEY, JSON.stringify(preference));
 }
 
+function notificationPreferenceFromCookie() {
+  const prefix = `${encodeURIComponent(NOTIFICATION_PREFERENCE_KEY)}=`;
+  const entry = document.cookie.split('; ').find((item) => item.startsWith(prefix));
+  if (!entry) return null;
+  return decodeURIComponent(entry.slice(prefix.length)) === '1';
+}
+
+function saveNotificationPreference(enabled) {
+  document.cookie = `${encodeURIComponent(NOTIFICATION_PREFERENCE_KEY)}=${enabled ? '1' : '0'}; Max-Age=315360000; Path=/; SameSite=Strict`;
+}
+
 function loadNotificationPreference() {
   try {
-    const value = JSON.parse(localStorage.getItem(NOTIFICATION_PREFERENCE_KEY) || '{}');
-    return Boolean(value.enabled);
+    const cookieValue = notificationPreferenceFromCookie();
+    if (cookieValue !== null) return cookieValue;
+
+    const stored = localStorage.getItem(NOTIFICATION_PREFERENCE_KEY);
+    localStorage.removeItem(NOTIFICATION_PREFERENCE_KEY);
+    if (stored === null) return false;
+    const value = JSON.parse(stored);
+    const enabled = typeof value === 'boolean' ? value : Boolean(value?.enabled);
+    saveNotificationPreference(enabled);
+    return enabled;
   } catch {
     localStorage.removeItem(NOTIFICATION_PREFERENCE_KEY);
     return false;
   }
-}
-
-function saveNotificationPreference(enabled) {
-  localStorage.setItem(NOTIFICATION_PREFERENCE_KEY, JSON.stringify({ enabled: Boolean(enabled) }));
 }
 
 function loadDismissedResultTaskId() {
