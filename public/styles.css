@@ -1158,7 +1158,7 @@ body.lightbox-open { overflow: hidden; }
 .proxy-status { margin: 0 14px 12px; padding: 9px 10px; color: #4b4f49; background: var(--paper); border-left: 3px solid var(--line-strong); font-size: 11px; line-height: 1.45; }
 .proxy-status.success { color: var(--green-dark); background: var(--green-soft); border-left-color: var(--green); }
 .proxy-status.error { color: #862f27; background: var(--coral-soft); border-left-color: var(--coral); }
-.proxy-actions { display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 8px; margin-top: 18px; }
+.proxy-actions { display: grid; grid-template-columns: auto auto 1fr auto auto; align-items: center; gap: 8px; margin-top: 18px; }
 .danger-button { color: #8b2e25; border-color: #d9aaa4; }
 .danger-button:hover { background: var(--coral-soft); }
 

@@ -144,6 +144,7 @@ const refs = {
   proxyStatus: document.querySelector('#proxy-status'),
   testProxy: document.querySelector('#test-proxy-button'),
   resetProxy: document.querySelector('#reset-proxy-button'),
+  backProxy: document.querySelector('#back-proxy-button'),
   saveProxy: document.querySelector('#save-proxy-button'),
   requestDialog: document.querySelector('#request-dialog'),
   requestPreview: document.querySelector('#request-preview'),
@@ -2557,6 +2558,11 @@ async function openProxySettings() {
   }
 }
 
+function backToAuthSettings() {
+  refs.proxyDialog.close();
+  refs.authDialog.showModal();
+}
+
 function proxyFormPayload() {
   return {
     enabled: refs.proxyEnabled.checked,
@@ -2657,6 +2663,7 @@ function bindEvents() {
   refs.proxyAuthEnabled.addEventListener('change', syncProxyAuthFields);
   refs.saveProxy.addEventListener('click', saveProxySettings);
   refs.resetProxy.addEventListener('click', resetProxySettings);
+  refs.backProxy.addEventListener('click', backToAuthSettings);
   refs.testProxy.addEventListener('click', testProxyConnection);
   refs.keyInput.addEventListener('keydown', (event) => { if (event.key === 'Enter') { event.preventDefault(); connectKey(); } });
   refs.copyEndpoint.addEventListener('click', () => state.selectedModel && copyText(state.selectedModel.endpoint_id, 'Endpoint ID 已复制。'));
