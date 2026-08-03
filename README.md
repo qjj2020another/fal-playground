@@ -17,7 +17,7 @@ FAL Workbench 是一个运行在本机浏览器中的 fal.ai 可视化工作台�
 #### 模型目录与请求编辑
 
 - 浏览、搜索和分类查看 fal.ai 在线模型；目录采用分页加载，不会停在首批 30 个模型。
-- 普通目录模型可直接拖放排序，不显示额外移动按钮；顺序自动保存在浏览器站点数据中。
+- 普通目录模型可直接拖放排序，不显示额外移动按钮；顺序自动保存在浏览器站点数据中。跨分页移动同样会持久化：从后续页面移入前 30 位的模型，刷新后无需再次加载该页，即可继续显示在保存的位置。
 - 可搜索并设置启动首选模型，也可一键恢复原始预设。首选模型即使尚未出现在已加载目录页中，也会固定显示在目录顶部。
 - `重试` 或 `复制请求` 恢复出的临时模型独立置顶：临时模型位于第 1 位、首选模型位于第 2 位；离开临时模型后，首选模型回到第 1 位。两者相同时只显示一个条目。
 - 根据模型 OpenAPI Schema 自动生成可视化参数表单，同时保留完整 JSON 编辑模式和请求预览。
@@ -185,7 +185,7 @@ The local Node.js service listens on `127.0.0.1:14726` by default. It handles fa
 #### Model catalog and requests
 
 - Search, filter, and page through the live fal.ai catalog instead of stopping after the first 30 models.
-- Drag regular catalog cards to reorder them. The order is saved in this browser's site data without visible move controls.
+- Drag regular catalog cards to reorder them. The order is saved in this browser's site data without visible move controls. Cross-page moves persist as well: a model moved from a later page into the first 30 positions remains visible there after reload without loading that page again.
 - Search for a preferred startup model, change it at any time, or restore the original default. The preferred model remains pinned even before its normal catalog page has loaded.
 - Retry and Copy Request may pin a separate temporary model above the preferred model. Leaving that restored request removes the temporary pin; if both identities match, only one card is shown.
 - Generate visual forms from OpenAPI schemas while retaining a full JSON editor and request preview.
