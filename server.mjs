@@ -1142,7 +1142,7 @@ async function runModel(body) {
   const output = await fetchFalJson(`https://fal.run/${endpointId}`, {
     method: 'POST',
     body: body.inputs || {},
-    timeout: 300_000
+    timeout: 600_000
   });
   const result = await finalizeTaskResult(body.taskId, endpointId, output);
   return { ok: true, endpointId, result };
