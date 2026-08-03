@@ -33,7 +33,7 @@ Never commit, paste, or attach any of the following:
 
 A key saved through the UI is stored in `.runtime/fal-key`, and persisted proxy settings are stored in `.runtime/proxy-settings.json`. These are local plaintext files, not an operating-system credential vault. Restrict access to the project directory and avoid placing it in a synced or shared folder. Disconnecting through the UI removes the saved key, but it does not remove a key supplied through the `FAL_KEY` process environment.
 
-Task history and browser preferences are stored in site-local `localStorage`. History may include request and response data, private prompts, endpoint identifiers, and output URLs. Avoid using the Workbench in a shared browser profile. Clearing the site's browser data removes these browser-side records, but it does not delete `.runtime/` or `images/` from the project directory.
+Task history and most browser preferences are stored in site-local `localStorage`; the notification-toggle preference is stored in a same-site cookie. History may include request and response data, private prompts, endpoint identifiers, and output URLs. Avoid using the Workbench in a shared browser profile. Clearing the site's browser data removes these browser-side records, but it does not delete `.runtime/` or `images/` from the project directory.
 
 If a key is exposed, revoke it in fal.ai immediately. Removing it from the latest commit is not enough because Git history, forks, caches, and notifications may retain it.
 

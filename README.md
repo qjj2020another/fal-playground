@@ -28,7 +28,7 @@ FAL Workbench 是一个运行在本机浏览器中的 fal.ai 可视化工作台�
 
 #### 任务、并发与历史
 
-- 支持直接提交和队列任务；一个任务生成期间仍可继续提交其他队列任务。
+- 提供“提交任务”和“队列任务”两个入口；两者都通过 fal.ai Queue API 提交并自动轮询，前者适合单任务主结果展示，后者便于连续加入并发任务。一个任务生成期间仍可继续提交其他队列任务。
 - 单个任务可在主结果区持续显示状态和输出；进入多任务模式后，各任务在历史区独立更新，全部结束后主结果区恢复为“暂无任务生成”。
 - 历史任务直接在历史列表内展开，不会把结果同步覆盖到主结果区。
 - 支持状态轮询、手动刷新、取消、响应 JSON、运行日志和实际生成耗时冻结。
@@ -43,8 +43,8 @@ FAL Workbench 是一个运行在本机浏览器中的 fal.ai 可视化工作台�
 - 完成的输出自动归档到 `images/<model>/`。删除任务时，可选择只删除该任务受管理的自动归档；浏览器另存为文件不会被删除。
 - 支持浏览器原生保存位置选择器。若浏览器不支持，则使用普通下载；下载统一经过同源 Workbench 接口，并在本地归档不可用时由服务端回源，避免大型视频受到浏览器 CORS 限制。
 - fal.ai API Key 可通过界面保存到本机 `.runtime/`，服务重启后自动恢复，也可由进程环境变量 `FAL_KEY` 提供。
-- 支持 HTTP、HTTPS 和 SOCKS5 代理设置及连接测试。
-- 顶部只读显示 fal.ai Credits 余额；任务进入成功或失败终态后刷新一次，支持负余额，不提供充值或账户操作。
+- 支持 HTTP、HTTPS 和 SOCKS5 代理设置。连接测试在代理开启时使用当前代理配置，关闭时改用直接连接；代理页可返回连接窗口而不保存或重置表单值。
+- 顶部只读显示 fal.ai Credits 余额；任务进入成功或失败终态时立即刷新，并在 30 秒后额外查询一次，以兼容 fal.ai 账单更新延迟。支持负余额，不提供充值或账户操作。
 - Windows 提供独立的 `start-demo.bat` 与 `stop-demo.bat`，无需通过任务管理器结束服务。
 
 ### 系统要求
@@ -131,7 +131,7 @@ npm start
 | `node_modules/` | npm 安装的依赖 |
 | `tools/genmedia*` | 本机平台使用的外部可执行文件 |
 
-浏览器端任务历史、删除与清除确认偏好、结果区关闭状态、通知开关、模型拖放顺序和启动首选模型都保存在当前站点的 `localStorage` 中。清除该站点的 Cookie／网站数据后，这些浏览器侧记录会恢复默认；项目目录中的 `.runtime/` 与 `images/` 不会因此删除。
+浏览器端任务历史、删除与清除确认偏好、结果区关闭状态、模型拖放顺序和启动首选模型保存在当前站点的 `localStorage` 中；通知开关偏好保存在同站点 Cookie 中。清除该站点的 Cookie／网站数据后，这些浏览器侧记录会恢复默认；项目目录中的 `.runtime/` 与 `images/` 不会因此删除。
 
 当前版本的提示词、附件和请求参数草稿按模型保留在页面内存中，用于当前网页会话内切换模型；重新载入网页后不恢复这些未提交草稿。
 
@@ -141,7 +141,7 @@ npm start
 
 ### fal.ai 余额
 
-成功连接后，Workbench 会读取一次当前 Credits 余额；此后每个图片或视频任务首次进入成功或失败终态时，再查询一次。余额栏只显示 fal.ai 返回的余额和币种，美元示例为 `Credits: $4.36`，负余额示例为 `Credits: -$1.25`。
+成功连接后，Workbench 会读取一次当前 Credits 余额；此后每个图片或视频任务首次进入成功或失败终态时立即查询一次，并在 30 秒后额外查询一次，以接收 fal.ai 可能延迟入账的余额变化。余额栏只显示 fal.ai 返回的余额和币种，美元示例为 `Credits: $4.36`，负余额示例为 `Credits: -$1.25`。
 
 余额栏没有点击、充值、跳转或账户管理功能。鼠标悬停或键盘聚焦时会显示提示，余额不足需前往 fal.ai 处理。余额查询失败不会弹出额外页面，也不会影响任务台的其他功能。
 
@@ -196,7 +196,7 @@ The local Node.js service listens on `127.0.0.1:14726` by default. It handles fa
 
 #### Tasks and history
 
-- Run direct requests or queued jobs, continue adding queued jobs while another task is running, poll status, refresh, and cancel supported jobs.
+- Use the Submit Task and Queue Task entry points. Both submit through the fal.ai Queue API and poll automatically; Submit Task favors the single-task main-result workflow, while Queue Task is suited to adding concurrent work. More queued jobs can be added while another task is running.
 - Use the main result panel for a single task. Concurrent tasks update independently inside History, and the main panel returns to its empty state after the batch ends.
 - Expand historical tasks in place without mirroring them into the main result panel.
 - Retain response JSON, logs, queue position, and the frozen elapsed time of completed tasks.
@@ -211,8 +211,8 @@ The local Node.js service listens on `127.0.0.1:14726` by default. It handles fa
 - Archive completed outputs under `images/<model>/`. Managed deletion can remove only that task's archive files; separately exported files remain untouched.
 - Save through the browser's native file picker when available. Downloads use a same-origin Workbench endpoint with a server-side remote fallback, avoiding browser CORS failures on large video files.
 - Persist a validated fal.ai API Key under `.runtime/`, or provide `FAL_KEY` through the process environment.
-- Configure and test HTTP, HTTPS, or SOCKS5 proxies.
-- Show a read-only fal.ai Credits balance, including negative balances, and refresh it when a task first reaches a completed or failed state.
+- Configure HTTP, HTTPS, or SOCKS5 proxies. Connection testing uses the current proxy settings when enabled and a direct connection when disabled; Back returns to the connection dialog without saving or resetting the proxy form.
+- Show a read-only fal.ai Credits balance, including negative balances. Each completed or failed terminal state triggers an immediate refresh and one additional refresh 30 seconds later to account for delayed billing updates.
 - Start and stop the background service on Windows with `start-demo.bat` and `stop-demo.bat`.
 
 ### Requirements
@@ -263,11 +263,11 @@ The following paths are local runtime data and are ignored by Git:
 | `node_modules/` | Installed npm dependencies |
 | `tools/genmedia*` | Platform-specific external binaries |
 
-Task history, confirmation preferences, dismissed-result state, notification settings, drag order, and the preferred model are stored in site-local `localStorage`. Clearing site data restores these browser-side settings. Per-model unsubmitted drafts currently live only for the open page session and do not survive a reload.
+Task history, confirmation preferences, dismissed-result state, drag order, and the preferred model are stored in site-local `localStorage`; the notification-toggle preference is stored in a same-site cookie. Clearing site data restores these browser-side settings. Per-model unsubmitted drafts currently live only for the open page session and do not survive a reload.
 
 ### Credit balance
 
-The indicator calls `GET /v1/account/billing?expand=credits`, which fal.ai restricts to Admin-scoped API Keys. A regular key may still run models within its permissions, but the indicator shows `--` when billing access is unavailable. The indicator is display-only, supports negative balances, and exposes no billing or recharge action.
+The indicator calls `GET /v1/account/billing?expand=credits`, which fal.ai restricts to Admin-scoped API Keys. A regular key may still run models within its permissions, but the indicator shows `--` when billing access is unavailable. The indicator is display-only, supports negative balances, and exposes no billing or recharge action. After each image or video task first reaches a completed or failed state, Workbench refreshes the balance immediately and once more after 30 seconds to accommodate delayed credit updates.
 
 ### Verification
 

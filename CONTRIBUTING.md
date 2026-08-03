@@ -46,15 +46,17 @@ Open <http://127.0.0.1:14726>.
 - Keep the service local-only unless a proposal also supplies a complete security design for remote access.
 - Preserve schema-driven behavior. Endpoint-specific handling should be narrow, justified, and covered by a concrete failing Schema or request example.
 - Keep API Keys, proxy credentials, uploads, generated media, task archives, and browser data out of commits.
-- Treat `.runtime/`, `images/`, site-local `localStorage`, and per-model in-memory drafts as separate state domains. A change in one domain must not silently clear, migrate, or delete another.
+- Treat `.runtime/`, `images/`, site-local `localStorage`, the notification-preference cookie, and per-model in-memory drafts as separate state domains. A change in one domain must not silently clear, migrate, or delete another.
 - Preserve the catalog-order contract: regular loaded models may participate in saved drag ordering; the preferred model and Retry or Copy Request temporary model remain pinned outside that order; leaving a temporary model restores it to its prior position or removes an injected-only entry.
 - Preserve per-model prompts, attachments, and request values across model switches and task completion. Clear Inputs may reset only the selected model to its current Schema defaults after applying the documented confirmation preference.
+- Preserve the two submission entry points while routing both through fal.ai Queue API polling. Submit Task remains the single-task main-result path; Queue Task remains the explicit concurrent-work path.
 - Keep single-task and multi-task presentation distinct. Historical expansion stays inside History, concurrent jobs expose independent state, and the main panel returns to its empty state after a multi-task batch settles.
+- Keep proxy connection testing available in both modes: use the current proxy form when enabled and a direct connection when disabled. Returning to the parent connection dialog must not save or reset unsaved proxy form values.
 - Keep main-result dismissal separate from cancellation, history deletion, and archive deletion.
 - Confine managed deletion to files recorded for that task under `images/`. Same-origin Save As should prefer the local archive and use the validated remote fallback only when the archive is unavailable.
 - Preserve image lightbox behavior without coupling it to Open Original or Save As, and preserve video poster or decoded-frame fallbacks in History.
 - Keep browser notifications opt-in and emit at most one native notification per terminal task state. In-page toasts must remain available independently.
-- Keep the Credits indicator read-only. Billing authorization failures must not block generation, uploads, or task polling, and negative balances must remain valid display values.
+- Keep the Credits indicator read-only. Billing authorization failures must not block generation, uploads, or task polling, negative balances must remain valid display values, and terminal image or video tasks must retain the immediate refresh plus the single 30-second delayed refresh.
 - Avoid unrelated formatting changes or broad refactors in focused fixes.
 - Keep user-visible text clear about what runs locally, what is stored locally, and what is sent to fal.ai.
 - Do not add telemetry without prior discussion, explicit consent, and documentation.
@@ -81,7 +83,7 @@ Use the relevant parts of this regression checklist:
 - dismiss a main result without changing task state, History, or archives;
 - open images from the main panel and History in the lightbox, then separately test Open Original and Save As;
 - verify archive creation, local-first same-origin download, remote fallback, and managed deletion without touching separately exported files;
-- test saved-key disconnect, environment-key behavior, proxy save and reset, regular-key billing failure, Admin-key balance display, and negative Credits;
+- test saved-key disconnect, environment-key behavior, proxy save and reset, proxy-on and proxy-off connection tests, unsaved Back navigation, regular-key billing failure, Admin-key balance display, negative Credits, and the 30-second delayed balance refresh;
 - on Windows, start and stop the independent service with the paired batch files and confirm no unrelated process is terminated.
 
 Include screenshots only when they clarify a visual change, and remove private task content before uploading them.
