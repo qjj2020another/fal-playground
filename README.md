@@ -6,6 +6,8 @@
 >
 > 非官方社区项目，与 fal.ai 不存在隶属、授权或背书关系。模型推理由 fal.ai 云端执行，使用产生的费用由 fal.ai 账户承担。
 
+![FAL Workbench PC interface overview](docs/assets/fal-workbench-overview.png)
+
 ## 简体中文
 
 FAL Workbench 是一个运行在本机浏览器中的 fal.ai 可视化工作台。它读取实时模型目录与 OpenAPI Schema，动态生成参数表单，并把模型选择、请求配置、并发任务、历史结果和本地输出归档集中在一个页面中，无需为每个模型单独维护固定界面。
