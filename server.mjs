@@ -256,9 +256,6 @@ async function resetProxySettings() {
 
 async function testProxyConnection(targetUrl, candidateSettings) {
   const settings = validateProxySettings(candidateSettings || runtime.proxy);
-  if (!settings.enabled) {
-    throw Object.assign(new Error('Enable the proxy before testing it.'), { code: 'PROXY_DISABLED' });
-  }
 
   let target;
   try {
@@ -283,9 +280,15 @@ async function testProxyConnection(targetUrl, candidateSettings) {
       req.on('error', rejectPromise);
       req.end();
     });
-    return { ok: true, target: target.href, statusCode: result.statusCode, durationMs: Date.now() - startedAt };
+    return {
+      ok: true,
+      target: target.href,
+      viaProxy: Boolean(agent),
+      statusCode: result.statusCode,
+      durationMs: Date.now() - startedAt
+    };
   } finally {
-    agent.destroy();
+    agent?.destroy();
   }
 }
 

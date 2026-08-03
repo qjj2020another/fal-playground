@@ -1862,6 +1862,7 @@ function updateTask(taskId, response, changes = {}) {
   notifyTaskTerminal(task, previousStatus, nextStatus);
   if (['completed', 'failed', 'error'].includes(nextStatus) && !['completed', 'failed', 'error'].includes(previousStatus)) {
     void refreshBalance();
+    window.setTimeout(() => { void refreshBalance(); }, 30_000);
   }
   settleMultiTaskPresentation();
   return task;
@@ -2603,9 +2604,10 @@ async function testProxyConnection() {
   refs.proxyStatus.classList.add('hidden');
   try {
     const payload = await api('/api/proxy/test', { method: 'POST', body: JSON.stringify({ url: refs.proxyTestUrl.value.trim(), settings: proxyFormPayload() }) });
-    setProxyStatus(`代理连接成功：HTTP ${payload.statusCode}，${payload.durationMs} ms。`, 'success');
+    const connectionLabel = payload.viaProxy ? '代理连接' : '直接连接';
+    setProxyStatus(`${connectionLabel}成功：HTTP ${payload.statusCode}，${payload.durationMs} ms。`, 'success');
   } catch (error) {
-    setProxyStatus(`代理连接失败：${error.message}`, 'error');
+    setProxyStatus(`连接测试失败：${error.message}`, 'error');
   } finally {
     setButtonBusy(refs.testProxy, false, '');
   }
