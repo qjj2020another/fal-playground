@@ -735,6 +735,33 @@ function queueTaskResult(endpointId, result, fallback = {}) {
   };
 }
 
+function falTaskFailureMessage(error) {
+  const details = error?.details;
+  if (typeof details?.error === 'string' && details.error) return details.error;
+  if (typeof details?.error?.message === 'string' && details.error.message) return details.error.message;
+  if (typeof details?.message === 'string' && details.message) return details.message;
+  if (Array.isArray(details?.detail)) {
+    const messages = details.detail
+      .map((item) => typeof item === 'string' ? item : item?.msg || item?.message)
+      .filter(Boolean);
+    if (messages.length) return messages.join('; ');
+  }
+  return error?.message || 'fal.ai reported that the generation task failed.';
+}
+
+function falTaskFailureResult(endpointId, requestId, queue, error, status = {}) {
+  return queueTaskResult(endpointId, {
+    ...status,
+    status: 'FAILED',
+    request_id: requestId,
+    error: {
+      code: 'FAL_TASK_FAILED',
+      message: falTaskFailureMessage(error),
+      details: error?.details
+    }
+  }, queue);
+}
+
 async function submitQueueTask(endpointId, inputs) {
   const result = await fetchFalJson(`https://queue.fal.run/${endpointId}`, {
     method: 'POST',
@@ -1255,7 +1282,18 @@ async function taskStatus(body) {
     return { ok: true, endpointId, requestId, result: status };
   }
 
-  const output = await fetchFalJson(status.response_url, { timeout: 60_000 });
+  let output;
+  try {
+    output = await fetchFalJson(status.response_url, { timeout: 60_000 });
+  } catch (error) {
+    if (error.code !== 'FAL_HTTP_ERROR') throw error;
+    return {
+      ok: true,
+      endpointId,
+      requestId,
+      result: falTaskFailureResult(endpointId, requestId, queue, error, status)
+    };
+  }
   const completed = queueTaskResult(endpointId, { ...output, ...status, status: 'COMPLETED', request_id: requestId }, queue);
   const result = await finalizeTaskResult(body.taskId, endpointId, completed);
   return { ok: true, endpointId, requestId, result };

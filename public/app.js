@@ -1831,10 +1831,17 @@ function settleMultiTaskPresentation() {
   const trackedTasks = [...state.multiTaskIds]
     .map((taskId) => state.history.find((task) => task.id === taskId))
     .filter(Boolean);
-  const pendingCount = trackedTasks.filter((task) => !isTerminalStatus(statusText(task.response))).length;
+  const statuses = trackedTasks.map((task) => statusText(task.response));
+  const pendingCount = statuses.filter((status) => !isTerminalStatus(status)).length;
+  const completedCount = statuses.filter((status) => status === 'completed').length;
+  const failedCount = statuses.filter((status) => ['failed', 'error'].includes(status)).length;
   if (pendingCount > 0) {
     if (!state.activeTaskId) {
-      renderTaskEmpty('多个任务生成中', `${pendingCount} 个任务仍在运行；各任务状态和输出分别保留在历史中。`, '▦');
+      if (failedCount > 0) {
+        renderTaskEmpty('部分任务已失败', `${failedCount} 个任务已失败并停止，${pendingCount} 个任务仍在生成；正常任务会继续运行，详情请在历史中查看。`, '!');
+      } else {
+        renderTaskEmpty('多个任务生成中', `${pendingCount} 个任务仍在运行；各任务状态和输出分别保留在历史中。`, '▦');
+      }
     }
     return;
   }
@@ -1842,6 +1849,14 @@ function settleMultiTaskPresentation() {
   state.multiTaskIds.clear();
   state.activeTaskId = null;
   state.result = null;
+  if (trackedTasks.length > 0 && failedCount === trackedTasks.length) {
+    renderTaskEmpty('全部任务生成失败', `${failedCount} 个任务均已失败并停止，失败原因请在历史中查看。`, '!');
+    return;
+  }
+  if (completedCount > 0 && failedCount > 0) {
+    renderTaskEmpty('多任务部分成功', `${completedCount} 个任务生成成功，${failedCount} 个任务生成失败；输出和失败原因请在历史中查看。`, '!');
+    return;
+  }
   renderTaskEmpty('暂无任务生成', '多个任务均已结束，生成结果请在历史中查看。');
 }
 
@@ -1964,6 +1979,7 @@ async function pollTask(taskId, { announce = false } = {}) {
     const nextStatus = statusText(payload.result);
     if (announce) toast('任务状态已更新。');
     if (nextStatus === 'completed' && previousStatus !== 'completed') toast('任务已完成，输出已经载入。');
+    if (['failed', 'error'].includes(nextStatus) && !['failed', 'error'].includes(previousStatus)) toast(`任务失败：${taskErrorMessage(updated)}`, 'error');
     if (updated && !isTerminalStatus(nextStatus)) scheduleTaskPoll(taskId);
   } catch (error) {
     task.pollError = error.message;
@@ -2034,7 +2050,7 @@ function taskStatusMessage(status, result) {
   if (['in_progress', 'processing', 'running'].includes(status)) return 'fal.ai 正在生成，完成后输出会自动出现在这里。';
   if (status === 'completed') return '生成完成，输出文件已载入。';
   if (['cancelled', 'canceled'].includes(status)) return '任务已取消。';
-  if (['failed', 'error'].includes(status)) return result?.error?.message || result?.message || '任务执行失败。';
+  if (['failed', 'error'].includes(status)) return `任务失败：${result?.error?.message || result?.message || '生成过程中发生错误。'}`;
   return '任务状态已记录。';
 }
 
