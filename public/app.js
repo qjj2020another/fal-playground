@@ -3,6 +3,7 @@ const DELETE_PREFERENCE_KEY = 'fal-workbench-delete-preference';
 const CLEAR_INPUTS_PREFERENCE_KEY = 'fal-workbench-clear-inputs-preference';
 const NOTIFICATION_PREFERENCE_KEY = 'fal-workbench-notification-preference';
 const DISMISSED_RESULT_KEY = 'fal-workbench-dismissed-result';
+const SKIP_COMPLETED_RESULT_RESTORE_KEY = 'fal-workbench-skip-completed-result-restore';
 const MODEL_ORDER_KEY = 'fal-workbench-model-order';
 const MODEL_ORDER_MODELS_KEY = 'fal-workbench-model-order-models';
 const MODEL_PAGE_SIZE = 30;
@@ -47,6 +48,7 @@ const state = {
   history: loadHistory(),
   activeTaskId: null,
   dismissedResultTaskId: loadDismissedResultTaskId(),
+  skipCompletedResultRestore: loadSkipCompletedResultRestore(),
   historyExpandedTaskId: null,
   multiTaskMode: false,
   multiTaskIds: new Set(),
@@ -57,19 +59,24 @@ const state = {
   catalogRequest: 0,
   schemaRequest: 0
 };
-state.activeTaskId = state.history[0]?.id
-  && state.history[0]?.resultPresentation !== 'history'
-  && state.history[0].id !== state.dismissedResultTaskId
-  ? state.history[0].id
-  : null;
 const restoredPendingTasks = state.history.filter((task) => !isTerminalStatus(statusText(task.response)));
-if (restoredPendingTasks.length > 1 || restoredPendingTasks.some((task) => task.resultPresentation === 'history')) {
+if (restoredPendingTasks.length > 1 || (!state.skipCompletedResultRestore && restoredPendingTasks.some((task) => task.resultPresentation === 'history'))) {
   state.multiTaskMode = true;
   restoredPendingTasks.forEach((task) => {
     task.resultPresentation = 'history';
     state.multiTaskIds.add(task.id);
   });
-  state.activeTaskId = null;
+} else if (state.skipCompletedResultRestore && restoredPendingTasks.length === 1) {
+  const [pendingTask] = restoredPendingTasks;
+  pendingTask.resultPresentation = 'result';
+  state.activeTaskId = pendingTask.id;
+} else if (!state.skipCompletedResultRestore) {
+  const latestTask = state.history[0];
+  state.activeTaskId = latestTask?.id
+    && latestTask.resultPresentation !== 'history'
+    && latestTask.id !== state.dismissedResultTaskId
+    ? latestTask.id
+    : null;
 }
 
 const refs = {
@@ -122,6 +129,7 @@ const refs = {
   responseJson: document.querySelector('#response-json'),
   historyView: document.querySelector('#history-view'),
   historyCount: document.querySelector('#history-count'),
+  skipCompletedResultRestore: document.querySelector('#skip-completed-result-restore'),
   clearHistory: document.querySelector('#clear-history'),
   notificationControl: document.querySelector('#notification-control'),
   notificationEnabled: document.querySelector('#notification-enabled'),
@@ -495,6 +503,35 @@ function setDismissedResultTaskId(taskId) {
   } catch {
     // Dismissal still applies for the current page session.
   }
+}
+
+function loadSkipCompletedResultRestore() {
+  try {
+    return JSON.parse(localStorage.getItem(SKIP_COMPLETED_RESULT_RESTORE_KEY) || 'false') === true;
+  } catch {
+    localStorage.removeItem(SKIP_COMPLETED_RESULT_RESTORE_KEY);
+    return false;
+  }
+}
+
+function setSkipCompletedResultRestore(enabled) {
+  state.skipCompletedResultRestore = Boolean(enabled);
+  try {
+    localStorage.setItem(SKIP_COMPLETED_RESULT_RESTORE_KEY, JSON.stringify(state.skipCompletedResultRestore));
+  } catch {
+    // The preference still applies for the current page session.
+  }
+  renderSkipCompletedResultRestore();
+}
+
+function renderSkipCompletedResultRestore() {
+  if (!refs.skipCompletedResultRestore) return;
+  const enabled = state.skipCompletedResultRestore;
+  refs.skipCompletedResultRestore.classList.toggle('active', enabled);
+  refs.skipCompletedResultRestore.setAttribute('aria-pressed', String(enabled));
+  refs.skipCompletedResultRestore.title = enabled
+    ? '已启用：刷新或重启时不自动载入最后一个已完成任务'
+    : '刷新或重启时不自动载入最后一个已完成任务';
 }
 
 async function api(path, options = {}) {
@@ -2694,6 +2731,7 @@ function bindEvents() {
   refs.runButton.addEventListener('click', () => submitRun(false));
   refs.queueButton.addEventListener('click', () => submitRun(true));
   refs.resultTabs.forEach((button) => button.addEventListener('click', () => showResultTab(button.dataset.resultTab)));
+  refs.skipCompletedResultRestore.addEventListener('click', () => setSkipCompletedResultRestore(!state.skipCompletedResultRestore));
   refs.confirmDeleteTask.addEventListener('click', confirmDeleteTask);
   refs.imageLightboxClose.addEventListener('click', closeImageLightbox);
   refs.imageLightbox.addEventListener('click', (event) => {
@@ -2722,10 +2760,16 @@ function bindEvents() {
 async function init() {
   bindEvents();
   renderNotificationControl();
+  renderSkipCompletedResultRestore();
   renderHistory();
   refs.responseJson.textContent = '{}';
-  if (state.activeTaskId) showTask(state.history.find((task) => task.id === state.activeTaskId), { switchTab: false });
-  else renderTaskEmpty(state.dismissedResultTaskId ? '暂无任务生成' : '尚无生成结果');
+  if (state.activeTaskId) {
+    showTask(state.history.find((task) => task.id === state.activeTaskId), { switchTab: false });
+  } else if (state.multiTaskMode) {
+    renderTaskEmpty('多个任务生成中', `${restoredPendingTasks.length} 个任务仍在运行；各任务状态和输出分别保留在历史中。`, '▦');
+  } else {
+    renderTaskEmpty(state.skipCompletedResultRestore ? '暂无任务生成' : (state.dismissedResultTaskId ? '暂无任务生成' : '尚无生成结果'));
+  }
   await loadHealth();
   if (state.health?.hasKey) await refreshBalance();
   resumePendingTasks();

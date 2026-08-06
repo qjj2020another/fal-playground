@@ -144,7 +144,13 @@
             <span class="eyebrow">RUNS & OUTPUT</span>
             <h2>任务台</h2>
           </div>
-          <button id="clear-history" class="icon-button" type="button" title="清除本地任务历史" aria-label="清除本地任务历史">×</button>
+          <div class="task-heading-actions">
+            <button id="skip-completed-result-restore" class="result-restore-button" type="button" aria-pressed="false" title="刷新或重启时不自动载入最后一个已完成任务">
+              <span class="result-restore-check" aria-hidden="true">✓</span>
+              <span>不自动载入已完成</span>
+            </button>
+            <button id="clear-history" class="icon-button" type="button" title="清除本地任务历史" aria-label="清除本地任务历史">×</button>
+          </div>
         </div>
 
         <div class="result-tabs" role="tablist" aria-label="任务台视图">
