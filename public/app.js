@@ -7,6 +7,7 @@ const SKIP_COMPLETED_RESULT_RESTORE_KEY = 'fal-workbench-skip-completed-result-r
 const MODEL_ORDER_KEY = 'fal-workbench-model-order';
 const MODEL_ORDER_MODELS_KEY = 'fal-workbench-model-order-models';
 const MODEL_PAGE_SIZE = 30;
+const HISTORY_PAGE_SIZE = 30;
 const PREFERRED_MODEL_KEY = 'fal-workbench-preferred-model';
 const TERMINAL_TASK_STATUSES = new Set(['completed', 'failed', 'error', 'cancelled', 'canceled']);
 
@@ -46,6 +47,7 @@ const state = {
   submittingActions: { run: 0, queue: 0 },
   result: null,
   history: loadHistory(),
+  historyVisibleLimit: HISTORY_PAGE_SIZE,
   activeTaskId: null,
   dismissedResultTaskId: loadDismissedResultTaskId(),
   skipCompletedResultRestore: loadSkipCompletedResultRestore(),
@@ -395,7 +397,7 @@ function loadHistory() {
   try {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) throw new Error('Task history must be an array.');
-    return parsed.slice(0, 30).map((item) => {
+    return parsed.map((item) => {
       const updatedAt = item.updatedAt || item.createdAt || new Date().toISOString();
       const status = statusText(item.response);
       return {
@@ -420,7 +422,7 @@ function loadHistory() {
 
 function saveHistory() {
   try {
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(state.history.slice(0, 30)));
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(state.history));
   } catch (error) {
     console.warn(`Unable to persist task history: ${error.message}`);
   }
@@ -1836,7 +1838,6 @@ function addHistory(item) {
   if (isTerminalStatus(item.status) && !item.completedAt) item.completedAt = item.updatedAt || new Date().toISOString();
   setDismissedResultTaskId(null);
   state.history.unshift(item);
-  state.history = state.history.slice(0, 30);
   if (item.resultPresentation === 'result') state.activeTaskId = item.id;
   saveHistory();
   renderHistory();
@@ -2425,13 +2426,16 @@ function renderHistory() {
     refs.historyView.innerHTML = '<div class="catalog-loading">本地任务历史为空。</div>';
     return;
   }
-  refs.historyView.innerHTML = state.history.map((item) => {
+  const visibleHistory = state.history.slice(0, state.historyVisibleLimit);
+  const hasMoreHistory = visibleHistory.length < state.history.length;
+  const historyEntries = visibleHistory.map((item) => {
     const status = statusText(item.response);
     const preview = historyPreviewMarkup(item);
     const active = item.id === state.activeTaskId;
     const expanded = item.id === state.historyExpandedTaskId;
     return `<article class="history-entry ${active ? 'active' : ''}" data-history-entry="${escapeHtml(item.id)}"><div class="history-row"><button class="history-item-main" type="button" data-history-id="${escapeHtml(item.id)}" aria-expanded="${expanded ? 'true' : 'false'}"><span class="history-preview">${preview}</span><span class="history-body"><span class="history-item-top"><strong>${escapeHtml(item.modelTitle || item.endpointId)}</strong><span class="history-status ${escapeHtml(status)}">${escapeHtml(statusLabel(status))}</span></span><code>${escapeHtml(requestIdFrom(item.response) || item.endpointId)}</code><time>${escapeHtml(formatTaskTime(item.createdAt))}</time></span></button><button class="history-delete-button" type="button" data-delete-history-task="${escapeHtml(item.id)}" title="删除任务" aria-label="删除任务">×</button></div>${expanded ? `<div class="history-expanded"><button class="history-detail-close" type="button" data-close-history-detail="${escapeHtml(item.id)}" title="关闭详情" aria-label="关闭详情">×</button>${taskDetailMarkup(item, 'history')}</div>` : ''}</article>`;
   }).join('');
+  refs.historyView.innerHTML = historyEntries + (hasMoreHistory ? '<button class="load-more history-load-more" type="button" data-load-more-history>加载更多历史</button>' : '');
   bindHistoryVideoPreviews();
   refs.historyView.querySelectorAll('[data-history-id]').forEach((button) => button.addEventListener('click', () => selectHistoryTask(button.dataset.historyId)));
   refs.historyView.querySelectorAll('[data-close-history-detail]').forEach((button) => button.addEventListener('click', (event) => {
@@ -2443,6 +2447,10 @@ function renderHistory() {
     event.stopPropagation();
     requestDeleteTask(button.dataset.deleteHistoryTask);
   }));
+  refs.historyView.querySelector('[data-load-more-history]')?.addEventListener('click', () => {
+    state.historyVisibleLimit += HISTORY_PAGE_SIZE;
+    renderHistory();
+  });
   bindTaskActions(refs.historyView);
 }
 
@@ -2745,6 +2753,7 @@ function bindEvents() {
     state.pollTimers.forEach((timer) => window.clearTimeout(timer));
     state.pollTimers.clear();
     state.history = [];
+    state.historyVisibleLimit = HISTORY_PAGE_SIZE;
     setDismissedResultTaskId(null);
     state.activeTaskId = null;
     state.result = null;
