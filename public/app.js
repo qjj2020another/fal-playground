@@ -855,6 +855,21 @@ async function loadHealth() {
   }
 }
 
+let lastBalancePageRefresh = 0;
+
+function maybeRefreshBalanceOnShow() {
+  if (!state.health?.hasKey) return;
+  const now = Date.now();
+  if (now - lastBalancePageRefresh < 10_000) return;
+  lastBalancePageRefresh = now;
+  void refreshBalance();
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') maybeRefreshBalanceOnShow();
+});
+window.addEventListener('focus', maybeRefreshBalanceOnShow);
+
 function renderCatalogLoading() {
   refs.modelList.innerHTML = `
     <div class="catalog-loading">
@@ -984,10 +999,13 @@ function displayedModels() {
   if (promotedModel) pinnedModels.push(promotedModel);
   if (preferredModel && preferred.endpointId !== promoted?.endpointId) pinnedModels.push(preferredModel);
   const pinnedIds = new Set(pinnedModels.map((model) => model.endpoint_id));
+  const queryFilterActive = Boolean(state.query.trim());
   for (const pinned of state.pinnedModels) {
     if (pinnedIds.has(pinned.endpointId)) continue;
+    const pinnedModel = catalogModels.find((model) => model.endpoint_id === pinned.endpointId) || pinned.model;
+    if (queryFilterActive && !modelMatchesCatalogFilter(pinnedModel)) continue;
     pinnedIds.add(pinned.endpointId);
-    pinnedModels.push(catalogModels.find((model) => model.endpoint_id === pinned.endpointId) || pinned.model);
+    pinnedModels.push(pinnedModel);
   }
   return [...pinnedModels, ...catalogModels.filter((model) => !pinnedIds.has(model.endpoint_id))];
 }
@@ -2958,7 +2976,10 @@ async function init() {
     renderTaskEmpty(state.skipCompletedResultRestore ? '暂无任务生成' : (state.dismissedResultTaskId ? '暂无任务生成' : '尚无生成结果'));
   }
   await loadHealth();
-  if (state.health?.hasKey) await refreshBalance();
+  if (state.health?.hasKey) {
+    lastBalancePageRefresh = Date.now();
+    await refreshBalance();
+  }
   resumePendingTasks();
   await loadModels();
 }
