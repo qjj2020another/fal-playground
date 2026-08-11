@@ -2159,7 +2159,8 @@ function findAssets(value, path = '', results = [], seen = new Set()) {
     const kind = /^data:image\//i.test(value) || /\.(png|jpe?g|webp|gif|avif)$/.test(lower) || /(?:^|\.)images?(?:\[|\.|$)/i.test(path) ? 'image'
       : /^data:video\//i.test(value) || /\.(mp4|webm|mov|m4v)$/.test(lower) || /(?:^|\.)videos?(?:\[|\.|$)/i.test(path) ? 'video'
         : /^data:audio\//i.test(value) || /\.(mp3|wav|ogg|m4a|flac)$/.test(lower) || /(?:^|\.)audios?(?:\[|\.|$)/i.test(path) ? 'audio'
-          : /\.(glb|gltf|obj|fbx|zip|pdf)$/.test(lower) || /(?:^|\.)files?(?:\[|\.|$)/i.test(path) ? 'file' : null;
+          : /\.(glb|gltf)$/.test(lower) ? 'model-3d'
+            : /\.(obj|fbx|zip|pdf)$/.test(lower) || /(?:^|\.)files?(?:\[|\.|$)/i.test(path) ? 'file' : null;
     if (kind && !results.some((item) => item.url === value)) results.push({ url: value, kind, path });
   } else if (Array.isArray(value)) {
     value.forEach((item, index) => findAssets(item, `${path}[${index}]`, results, seen));
@@ -2329,7 +2330,7 @@ function fileNameFromAsset(asset, index) {
   } catch {
     // Use the output fallback below.
   }
-  const extensions = { image: 'png', video: 'mp4', audio: 'mp3', file: 'bin' };
+  const extensions = { image: 'png', video: 'mp4', audio: 'mp3', 'model-3d': 'glb', file: 'bin' };
   return `fal-output-${index + 1}.${extensions[asset.kind] || 'bin'}`;
 }
 

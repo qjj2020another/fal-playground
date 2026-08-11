@@ -961,6 +961,8 @@ kbd {
 .asset-grid.single .asset-card > img,
 .asset-grid.single .asset-card > video { max-height: 370px; aspect-ratio: auto; object-fit: contain; }
 .asset-card > audio { width: calc(100% - 16px); min-height: 98px; margin: 8px; }
+.asset-card > model-viewer { width: 100%; aspect-ratio: 1; display: block; background: #1c211d; --poster-color: transparent; }
+.asset-grid.single .asset-card > model-viewer { max-height: 370px; aspect-ratio: auto; }
 .asset-card .file-asset { min-height: 138px; display: grid; place-items: center; padding: 12px; text-align: center; color: var(--muted); font-size: 10px; overflow-wrap: anywhere; }
 .asset-actions { position: absolute; top: 7px; right: 7px; display: flex; gap: 5px; }
 .asset-actions a,
