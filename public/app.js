@@ -9,6 +9,7 @@ const MODEL_ORDER_MODELS_KEY = 'fal-workbench-model-order-models';
 const MODEL_PAGE_SIZE = 30;
 const HISTORY_PAGE_SIZE = 30;
 const PREFERRED_MODEL_KEY = 'fal-workbench-preferred-model';
+const PINNED_MODELS_KEY = 'fal-workbench-pinned-models';
 const TERMINAL_TASK_STATUSES = new Set(['completed', 'failed', 'error', 'cancelled', 'canceled']);
 
 const state = {
@@ -326,6 +327,50 @@ function savePreferredModel(preferredModel) {
   const normalized = normalizePreferredModel(preferredModel);
   localStorage.setItem(PREFERRED_MODEL_KEY, JSON.stringify(normalized));
   state.preferredModel = normalized;
+}
+
+function normalizePinnedModelEntry(value) {
+  const endpointId = String(value?.endpointId || value?.endpoint_id || '').trim();
+  if (!endpointId) return null;
+  const model = value?.model && typeof value.model === 'object' ? modelSnapshot(value.model) : null;
+  if (!model) return null;
+  return { endpointId, model };
+}
+
+function loadPinnedModels() {
+  try {
+    const value = JSON.parse(localStorage.getItem(PINNED_MODELS_KEY) || '[]');
+    if (!Array.isArray(value)) return [];
+    return value.map(normalizePinnedModelEntry).filter(Boolean);
+  } catch {
+    localStorage.removeItem(PINNED_MODELS_KEY);
+    return [];
+  }
+}
+
+function savePinnedModels() {
+  try {
+    localStorage.setItem(PINNED_MODELS_KEY, JSON.stringify(state.pinnedModels));
+  } catch (error) {
+    console.warn(`Unable to persist pinned models: ${error.message}`);
+  }
+}
+
+function toggleModelPin(endpointId) {
+  const model = displayedModels().find((item) => item.endpoint_id === endpointId);
+  if (!model) return;
+  const index = state.pinnedModels.findIndex((item) => item.endpointId === endpointId);
+  if (index >= 0) {
+    state.pinnedModels.splice(index, 1);
+    savePinnedModels();
+    renderModels();
+    toast(`已取消置顶：${modelTitle(model)}`);
+  } else {
+    state.pinnedModels.push({ endpointId, model: modelSnapshot(model) });
+    savePinnedModels();
+    renderModels();
+    toast(`已置顶到目录顶部：${modelTitle(model)}。再点一次可取消。`);
+  }
 }
 
 function orderedCatalogModels(models = state.models) {
