@@ -855,21 +855,6 @@ async function loadHealth() {
   }
 }
 
-let lastBalancePageRefresh = 0;
-
-function maybeRefreshBalanceOnShow() {
-  if (!state.health?.hasKey) return;
-  const now = Date.now();
-  if (now - lastBalancePageRefresh < 10_000) return;
-  lastBalancePageRefresh = now;
-  void refreshBalance();
-}
-
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') maybeRefreshBalanceOnShow();
-});
-window.addEventListener('focus', maybeRefreshBalanceOnShow);
-
 function renderCatalogLoading() {
   refs.modelList.innerHTML = `
     <div class="catalog-loading">
