@@ -1473,7 +1473,7 @@ function refreshLoraManager(name) {
   const property = loraProperty(name);
   if (!property) return;
   const required = (state.formSchema?.required || []).includes(name);
-  manager.querySelector('.lora-items').innerHTML = loraRowsMarkup(name, loraItemConfig(property), required);
+  manager.innerHTML = `<div class="lora-items">${loraRowsMarkup(name, loraItemConfig(property), required)}</div><button class="secondary-button lora-add-button" type="button" data-lora-add="${escapeHtml(name)}">＋ 添加 item</button>`;
   bindLoraManager(name);
 }
 
