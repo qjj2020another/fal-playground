@@ -19,6 +19,7 @@ const state = {
   modelOrder: loadModelOrder(),
   modelSnapshots: loadModelSnapshots(),
   preferredModel: loadPreferredModel(),
+  pinnedModels: loadPinnedModels(),
   preferredModelCandidate: null,
   preferredModelResults: [],
   preferredModelRequest: 0,
@@ -938,6 +939,11 @@ function displayedModels() {
   if (promotedModel) pinnedModels.push(promotedModel);
   if (preferredModel && preferred.endpointId !== promoted?.endpointId) pinnedModels.push(preferredModel);
   const pinnedIds = new Set(pinnedModels.map((model) => model.endpoint_id));
+  for (const pinned of state.pinnedModels) {
+    if (pinnedIds.has(pinned.endpointId)) continue;
+    pinnedIds.add(pinned.endpointId);
+    pinnedModels.push(catalogModels.find((model) => model.endpoint_id === pinned.endpointId) || pinned.model);
+  }
   return [...pinnedModels, ...catalogModels.filter((model) => !pinnedIds.has(model.endpoint_id))];
 }
 
@@ -1021,9 +1027,14 @@ function renderModels() {
     const active = state.selectedModel?.endpoint_id === model.endpoint_id;
     const preferred = state.preferredModel?.endpointId === model.endpoint_id;
     const promoted = state.promotedModel?.endpointId === model.endpoint_id;
-    const pinned = preferred || promoted;
+    const userPinned = state.pinnedModels.some((item) => item.endpointId === model.endpoint_id);
+    const pinned = preferred || promoted || userPinned;
+    const pinButton = preferred || promoted
+      ? ''
+      : `<button class="model-card-pin ${userPinned ? 'pinned' : ''}" type="button" draggable="false" data-pin-endpoint="${escapeHtml(model.endpoint_id)}" title="${userPinned ? '取消置顶' : '置顶到目录第一页'}" aria-label="${userPinned ? '取消置顶' : '置顶到目录第一页'}" aria-pressed="${userPinned ? 'true' : 'false'}">${userPinned ? '★' : '☆'}</button>`;
     return `
-      <button class="model-card ${active ? 'active' : ''} ${preferred ? 'preferred' : ''} ${promoted ? 'promoted' : ''} ${pinned ? 'pinned' : ''}" type="button" data-endpoint="${escapeHtml(model.endpoint_id)}" data-pinned="${pinned ? 'true' : 'false'}" draggable="${pinned ? 'false' : 'true'}">
+      <div class="model-card ${active ? 'active' : ''} ${preferred ? 'preferred' : ''} ${promoted ? 'promoted' : ''} ${userPinned ? 'user-pinned' : ''} ${pinned ? 'pinned' : ''}" role="button" tabindex="0" data-endpoint="${escapeHtml(model.endpoint_id)}" data-pinned="${pinned ? 'true' : 'false'}" draggable="${pinned ? 'false' : 'true'}">
+        ${pinButton}
         <span class="model-card-icon ${model.thumbnail_url ? 'has-thumbnail' : ''}" aria-hidden="true">
           ${model.thumbnail_url ? `<img src="${escapeHtml(model.thumbnail_url)}" alt="" loading="lazy">` : escapeHtml(categoryLabel(model.category))}
         </span>
@@ -1032,15 +1043,27 @@ function renderModels() {
           <code>${escapeHtml(model.endpoint_id)}</code>
           <span class="model-card-meta"><span>${escapeHtml(model.category || 'other')}</span><span>•</span><span>${escapeHtml(model.status || 'active')}</span></span>
         </span>
-      </button>`;
+      </div>`;
   }).join('');
-  refs.modelList.querySelectorAll('.model-card').forEach((button) => {
-    button.addEventListener('click', () => {
+  refs.modelList.querySelectorAll('.model-card').forEach((card) => {
+    const selectCard = () => {
       if (state.suppressModelClick) return;
-      const model = displayedModels().find((item) => item.endpoint_id === button.dataset.endpoint);
+      const model = displayedModels().find((item) => item.endpoint_id === card.dataset.endpoint);
       if (model) selectModel(model, { userInitiated: true });
+    };
+    card.addEventListener('click', selectCard);
+    card.addEventListener('keydown', (event) => {
+      if (event.target !== card || (event.key !== 'Enter' && event.key !== ' ')) return;
+      event.preventDefault();
+      selectCard();
     });
-    bindModelDragAndDrop(button);
+    bindModelDragAndDrop(card);
+  });
+  refs.modelList.querySelectorAll('[data-pin-endpoint]').forEach((button) => {
+    button.addEventListener('click', (event) => {
+      event.stopPropagation();
+      toggleModelPin(button.dataset.pinEndpoint);
+    });
   });
 }
 

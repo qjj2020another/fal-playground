@@ -457,6 +457,7 @@ kbd {
 }
 
 .model-card {
+  position: relative;
   width: 100%;
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr);
@@ -469,6 +470,32 @@ kbd {
   border-bottom: 1px solid var(--line);
   cursor: pointer;
 }
+.model-card:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+.model-card-pin {
+  position: absolute;
+  top: 7px;
+  right: 9px;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--faint);
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+}
+.model-card:hover .model-card-pin,
+.model-card-pin:focus-visible,
+.model-card-pin.pinned { opacity: 1; }
+.model-card-pin:hover { color: #855a00; background: rgba(133, 90, 0, 0.08); }
+.model-card-pin.pinned { color: #b48300; }
+.model-card.user-pinned:not(.active) { background: #fffaf0; }
+.model-card.user-pinned:not(.active):hover { background: #fff5d9; }
 .model-card:hover { background: #f8faf6; }
 .model-card.active { background: #edf7f2; box-shadow: inset 3px 0 0 var(--green); }
 .model-card[draggable="true"] { cursor: grab; }
