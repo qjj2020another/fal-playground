@@ -1431,6 +1431,112 @@ function renderAssetManager(name, arrayMode, required) {
   return `<div class="asset-manager" data-asset-manager="${escapeHtml(name)}" data-array-mode="${arrayMode ? 'true' : 'false'}"><div class="asset-entry-row"><input type="url" value="${escapeHtml(current)}" placeholder="https://…" data-asset-url="${escapeHtml(name)}" ${required && !arrayMode ? 'required' : ''}><button class="secondary-button asset-url-button" type="button" data-add-asset-url="${escapeHtml(name)}">${arrayMode ? '添加 URL' : '应用 URL'}</button><button class="upload-button" type="button" data-upload-for="${escapeHtml(name)}">添加文件</button><input class="hidden" type="file" data-file-for="${escapeHtml(name)}" ${arrayMode ? 'multiple' : ''} accept="${escapeHtml(accept)}"></div><p class="asset-order-hint">${escapeHtml(hint)}</p><div class="reference-list" data-reference-list="${escapeHtml(name)}">${referencePreviewMarkup(name, arrayMode)}</div></div>`;
 }
 
+function loraItems(name) {
+  const value = state.inputs[name];
+  return Array.isArray(value) ? value.filter((item) => item && typeof item === 'object' && !Array.isArray(item)) : [];
+}
+
+function loraItemConfig(property) {
+  const item = propertyItems(property) || {};
+  const scale = item.properties?.scale || {};
+  return {
+    min: scale.minimum ?? 0,
+    max: scale.maximum ?? 4,
+    step: scale.multipleOf || 0.01,
+    defaultScale: propertyDefault(scale) ?? 1
+  };
+}
+
+function loraRowsMarkup(name, config, required) {
+  const items = loraItems(name);
+  if (!items.length) return '<div class="lora-empty">尚未添加 LoRA</div>';
+  return items.map((item, index) => {
+    const scale = Number(item.scale ?? config.defaultScale);
+    return `<article class="lora-item" data-lora-index="${index}"><div class="lora-item-heading"><strong>LoRA ${index + 1}</strong><button class="danger" type="button" data-lora-remove="${index}" title="删除 LoRA" aria-label="删除 LoRA">×</button></div><label class="lora-control"><span>Path${required ? ' *' : ''}</span><input type="url" value="${escapeHtml(item.path || '')}" data-lora-input="${escapeHtml(name)}" data-lora-index="${index}" data-lora-key="path" placeholder="https://huggingface.co/..." ${required ? 'required' : ''}></label><label class="lora-control"><span>Weight Name</span><input type="text" value="${escapeHtml(item.weight_name || '')}" data-lora-input="${escapeHtml(name)}" data-lora-index="${index}" data-lora-key="weight_name"></label><label class="lora-control"><span>Scale</span><div class="lora-scale-row"><input type="range" min="${config.min}" max="${config.max}" step="${config.step}" value="${scale}" data-lora-range="${escapeHtml(name)}" data-lora-index="${index}"><input type="number" min="${config.min}" max="${config.max}" step="${config.step}" value="${scale}" data-lora-input="${escapeHtml(name)}" data-lora-index="${index}" data-lora-key="scale"></div></label></article>`;
+  }).join('');
+}
+
+function renderLoraManager(name, property, required) {
+  const config = loraItemConfig(property);
+  return `<div class="lora-manager" data-lora-manager="${escapeHtml(name)}"><div class="lora-items">${loraRowsMarkup(name, config, required)}</div><button class="secondary-button lora-add-button" type="button" data-lora-add="${escapeHtml(name)}">＋ 添加 item</button></div>`;
+}
+
+function loraProperty(name) {
+  const property = state.formSchema?.properties?.[name];
+  if (!property) return null;
+  return resolveSchemaRef(property, state.formSchema || state.schema) || property;
+}
+
+function refreshLoraManager(name) {
+  const manager = refs.visualForm.querySelector(`[data-lora-manager="${CSS.escape(name)}"]`);
+  if (!manager) return;
+  const property = loraProperty(name);
+  if (!property) return;
+  const required = (state.formSchema?.required || []).includes(name);
+  manager.querySelector('.lora-items').innerHTML = loraRowsMarkup(name, loraItemConfig(property), required);
+  bindLoraManager(name);
+}
+
+function commitLoraInput(name, index, key, rawValue) {
+  const items = loraItems(name);
+  if (!items[index]) return;
+  const next = { ...items[index] };
+  if (key === 'scale') {
+    const parsed = Number(rawValue);
+    if (rawValue === '' || !Number.isFinite(parsed)) delete next.scale;
+    else next.scale = parsed;
+  } else if (rawValue === '') {
+    delete next[key];
+  } else {
+    next[key] = rawValue;
+  }
+  items[index] = next;
+  state.inputs[name] = items;
+  syncJsonEditor();
+  saveCurrentModelDraft();
+}
+
+function addLoraItem(name) {
+  const property = loraProperty(name);
+  if (!property) return;
+  const config = loraItemConfig(property);
+  state.inputs[name] = [...loraItems(name), { path: '', weight_name: '', scale: config.defaultScale }];
+  syncJsonEditor();
+  saveCurrentModelDraft();
+  refreshLoraManager(name);
+  refs.visualForm.querySelector(`[data-lora-manager="${CSS.escape(name)}"] .lora-item:last-child [data-lora-key="path"]`)?.focus();
+}
+
+function removeLoraItem(name, index) {
+  const items = loraItems(name).filter((_, itemIndex) => itemIndex !== index);
+  if (items.length) state.inputs[name] = items;
+  else delete state.inputs[name];
+  syncJsonEditor();
+  saveCurrentModelDraft();
+  refreshLoraManager(name);
+}
+
+function bindLoraManager(name) {
+  const manager = refs.visualForm.querySelector(`[data-lora-manager="${CSS.escape(name)}"]`);
+  if (!manager) return;
+  manager.querySelectorAll('[data-lora-input]').forEach((input) => {
+    input.addEventListener('input', () => commitLoraInput(name, Number(input.dataset.loraIndex), input.dataset.loraKey, input.value));
+  });
+  manager.querySelectorAll('[data-lora-range]').forEach((range) => {
+    const index = Number(range.dataset.loraIndex);
+    const numberInput = manager.querySelector(`[data-lora-input="${CSS.escape(name)}"][data-lora-index="${index}"][data-lora-key="scale"]`);
+    range.addEventListener('input', () => {
+      if (numberInput) numberInput.value = range.value;
+      commitLoraInput(name, index, 'scale', range.value);
+    });
+    numberInput?.addEventListener('input', () => { if (numberInput.value !== '') range.value = numberInput.value; });
+  });
+  manager.querySelector(`[data-lora-add="${CSS.escape(name)}"]`)?.addEventListener('click', () => addLoraItem(name));
+  manager.querySelectorAll('[data-lora-remove]').forEach((button) => {
+    button.addEventListener('click', () => removeLoraItem(name, Number(button.dataset.loraRemove)));
+  });
+}
+
 function renderField(name, property, required) {
   const type = propertyType(property);
   const options = enumOptions(property);
@@ -1459,6 +1565,8 @@ function renderField(name, property, required) {
       : `<input id="field-${escapeHtml(name)}" data-field="${escapeHtml(name)}" type="number" ${min !== '' ? `min="${min}"` : ''} ${max !== '' ? `max="${max}"` : ''} step="${step}" value="${value}" ${required ? 'required' : ''}>`;
   } else if (assetField) {
     control = renderAssetManager(name, assetArray, required);
+  } else if (name.toLowerCase() === 'loras' && type === 'array') {
+    control = renderLoraManager(name, property, required);
   } else if (type === 'array' || type === 'object') {
     const serialized = value === '' ? '' : JSON.stringify(value, null, 2);
     control = `<textarea id="field-${escapeHtml(name)}" data-field="${escapeHtml(name)}" data-json="true" placeholder="${type === 'array' ? '[]' : '{}'}" ${required ? 'required' : ''}>${escapeHtml(serialized)}</textarea>`;
@@ -1485,6 +1593,7 @@ function bindFields() {
   });
   refs.visualForm.querySelectorAll('[data-image-size-mode]').forEach(bindImageSizeControl);
   refs.visualForm.querySelectorAll('[data-asset-manager]').forEach((manager) => bindAssetManager(manager.dataset.assetManager));
+  refs.visualForm.querySelectorAll('[data-lora-manager]').forEach((manager) => bindLoraManager(manager.dataset.loraManager));
 }
 
 function bindImageSizeControl(select) {

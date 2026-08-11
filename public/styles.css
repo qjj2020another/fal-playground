@@ -682,6 +682,20 @@ kbd {
 .range-row { display: grid; grid-template-columns: minmax(0, 1fr) 82px; gap: 10px; align-items: center; }
 .range-row input[type="range"] { width: 100%; accent-color: var(--green); }
 
+.lora-manager { display: grid; gap: 9px; }
+.lora-items { display: grid; gap: 9px; }
+.lora-empty { min-height: 56px; display: grid; place-items: center; color: var(--faint); background: #f8f9f6; border: 1px dashed var(--line-strong); border-radius: 4px; font-size: 11px; }
+.lora-item { display: grid; gap: 8px; padding: 11px 12px; background: #fff; border: 1px solid var(--line); border-radius: 4px; }
+.lora-item-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.lora-item-heading strong { color: var(--green-dark); font: 800 11px/1 ui-monospace, SFMono-Regular, Consolas, monospace; }
+.lora-item-heading button { width: 26px; height: 26px; padding: 0; color: #8b2e25; background: #fff; border: 1px solid #d9aaa4; border-radius: 4px; cursor: pointer; }
+.lora-item-heading button:hover { background: var(--coral-soft); }
+.lora-control { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 10px; align-items: center; }
+.lora-control > span { color: var(--muted); font-size: 11px; font-weight: 700; }
+.lora-scale-row { display: grid; grid-template-columns: minmax(0, 1fr) 82px; gap: 10px; align-items: center; }
+.lora-scale-row input[type="range"] { width: 100%; accent-color: var(--green); }
+.lora-add-button { justify-self: start; min-height: 34px; padding: 0 14px; }
+
 .json-editor-wrap label { display: block; margin-bottom: 9px; font-size: 12px; font-weight: 700; }
 .json-editor-wrap textarea { min-height: 420px; resize: vertical; font: 12px/1.65 ui-monospace, SFMono-Regular, Consolas, monospace; tab-size: 2; }
 
