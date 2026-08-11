@@ -2976,10 +2976,7 @@ async function init() {
     renderTaskEmpty(state.skipCompletedResultRestore ? '暂无任务生成' : (state.dismissedResultTaskId ? '暂无任务生成' : '尚无生成结果'));
   }
   await loadHealth();
-  if (state.health?.hasKey) {
-    lastBalancePageRefresh = Date.now();
-    await refreshBalance();
-  }
+  if (state.health?.hasKey) await refreshBalance();
   resumePendingTasks();
   await loadModels();
 }
